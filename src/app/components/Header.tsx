@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { toast } from "react-toastify";
@@ -12,6 +13,10 @@ const Header = () => {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
 
+  const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const options: Intl.DateTimeFormatOptions = {
     weekday: "long",
     year: "numeric",
@@ -21,19 +26,47 @@ const Header = () => {
 
   const banglaDate = new Date().toLocaleDateString("bn-BD", options);
 
+  // Close dropdown on outside click or Escape
+  useEffect(() => {
+    if (!open) return;
+
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [open]);
+
   const handleSignOut = async () => {
+    setSigningOut(true);
+
     const { error } = await authClient.signOut();
 
     if (error) {
       toast.error("সাইন আউট করা যায়নি!");
+      setSigningOut(false);
       return;
     }
 
+    setOpen(false);
+    setSigningOut(false);
     toast.success("সফলভাবে সাইন আউট হয়েছে!");
 
     router.replace("/");
     router.refresh();
   };
+
+  const initial = user?.name?.charAt(0).toUpperCase() || "U";
 
   return (
     <header className="border-b border-gray-200 bg-white">
@@ -68,35 +101,97 @@ const Header = () => {
           {isPending ? (
             <span className="loading loading-spinner loading-sm text-green-700" />
           ) : user ? (
-            <>
-              {/* Desktop User Info */}
-              <div className="hidden items-center gap-2 rounded-xl bg-green-50 px-3 py-2 sm:flex">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-700 font-bold text-white">
-                  {user.name?.charAt(0).toUpperCase() || "U"}
-                </div>
+            <div ref={menuRef} className="relative">
+              {/* Trigger */}
+              <button
+                type="button"
+                onClick={() => setOpen((prev) => !prev)}
+                aria-haspopup="menu"
+                aria-expanded={open}
+                className="flex items-center gap-2 rounded-xl bg-green-50 px-2 py-1.5 transition hover:bg-green-100 sm:px-3 sm:py-2"
+              >
+                {user.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.image}
+                    alt={user.name || "User"}
+                    className="h-9 w-9 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-700 font-bold text-white">
+                    {initial}
+                  </div>
+                )}
 
-                <div className="max-w-32">
+                <div className="hidden max-w-32 text-left sm:block">
                   <p className="text-xs text-gray-500">স্বাগতম</p>
                   <p className="truncate text-sm font-bold text-gray-900">
                     {user.name || "ব্যবহারকারী"}
                   </p>
                 </div>
-              </div>
 
-              {/* Mobile User Name */}
-              <span className="max-w-24 truncate text-sm font-semibold text-gray-800 sm:hidden">
-                {user.name || "ব্যবহারকারী"}
-              </span>
-
-              {/* Sign Out */}
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="btn btn-sm border-red-200 bg-white text-red-600 hover:border-red-600 hover:bg-red-600 hover:text-white sm:btn-md"
-              >
-                সাইন আউট
+                {/* Chevron */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className={`h-4 w-4 text-gray-600 transition-transform ${
+                    open ? "rotate-180" : ""
+                  }`}
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                    clipRule="evenodd"
+                  />
+                </svg>
               </button>
-            </>
+
+              {/* Dropdown */}
+              {open && (
+                <div
+                  role="menu"
+                  className="absolute right-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl"
+                >
+                  {/* User info (shows on mobile too) */}
+                  <div className="border-b border-gray-100 bg-green-50 px-4 py-3">
+                    <p className="truncate text-sm font-bold text-gray-900">
+                      {user.name || "ব্যবহারকারী"}
+                    </p>
+                    <p className="truncate text-xs text-gray-500">
+                      {user.email}
+                    </p>
+                  </div>
+
+                  <div className="p-2">
+                    <Link
+                      href="/my-profile"
+                      role="menuitem"
+                      onClick={() => setOpen(false)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-green-50 hover:text-green-800"
+                    >
+                      <span>👤</span>
+                      আমার প্রোফাইল
+                    </Link>
+
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={handleSignOut}
+                      disabled={signingOut}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {signingOut ? (
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-red-300 border-t-red-600" />
+                      ) : (
+                        <span>⎋</span>
+                      )}
+                      {signingOut ? "সাইন আউট হচ্ছে..." : "সাইন আউট"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           ) : (
             <>
               <Link

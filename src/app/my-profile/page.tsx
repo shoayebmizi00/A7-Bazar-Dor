@@ -61,7 +61,7 @@ const MyProfilePage = () => {
     await signOut({
       fetchOptions: {
         onSuccess: () => {
-          router.push("/login");
+          router.push("/");
           router.refresh();
         },
         onError: () => setSigningOut(false),
