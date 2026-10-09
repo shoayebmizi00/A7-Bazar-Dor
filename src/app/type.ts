@@ -6,7 +6,7 @@ export type ICategory = {
 };
 
 export interface IChange {
-  dir: "up" | "down";
+  dir: "up" | "down" | "flat";
   pct: number;
 }
 

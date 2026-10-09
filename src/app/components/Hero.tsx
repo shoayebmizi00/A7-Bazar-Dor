@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import ScrollToButton from "./ScrollToButton";
 
 const HeroSection = () => {
   const options: Intl.DateTimeFormatOptions = {
@@ -44,13 +45,15 @@ const HeroSection = () => {
 
             {/* CTA */}
             <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row md:justify-start">
-              <Link
-                href="/categories"
+              <ScrollToButton targetId="all-products">
+                <Link
+                href="/#all-products"
                 className="btn w-full border-green-700 bg-green-700 px-6 text-white shadow-md hover:border-green-800 hover:bg-green-800 sm:w-auto"
               >
                 সব পণ্য দেখুন
                 <span>→</span>
               </Link>
+              </ScrollToButton>
             </div>
 
           </div>

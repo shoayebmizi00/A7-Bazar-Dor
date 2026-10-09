@@ -1,18 +1,8 @@
 import { notFound } from "next/navigation";
+import ProductList from "./ProductList";
+import { IProduct } from "@/app/type";
 
-interface IProduct {
-  id: number;
-  slug: string;
-  nameBn: string;
-  category: string;
-  categoryNameBn: string;
-  categoryIcon: string;
-  unit: string;
-  image: string; // an emoji in your data
-  today: number;
-  yesterday: number;
-  change: { dir: "up" | "down"; pct: number };
-}
+const toBn = (n: number) => n.toLocaleString("bn-BD");
 
 const DynamicCategoryPage = async ({
   params,
@@ -21,7 +11,7 @@ const DynamicCategoryPage = async ({
 }) => {
   const { categoryId } = await params;
 
-  // 👇 change this URL if your API uses a different category endpoint
+  // keep whichever category endpoint is working for you
   const response = await fetch(
     `https://api.abcz.workers.dev/api/bazardor/products?category=${categoryId}`,
     { next: { revalidate: 60 } },
@@ -32,39 +22,23 @@ const DynamicCategoryPage = async ({
   const products: IProduct[] = await response.json();
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold">
-        {products[0]?.categoryIcon} {products[0]?.categoryNameBn ?? categoryId}
-      </h1>
-
-      {products.length === 0 ? (
-        <p className="mt-6 text-gray-500">কোনো পণ্য পাওয়া যায়নি।</p>
-      ) : (
-        <div className="mt-6 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="rounded-lg border border-gray-200 p-4 shadow-sm transition hover:shadow-md"
-            >
-              <div className="mb-2 text-5xl">{product.image}</div>
-              <h2 className="font-semibold">{product.nameBn}</h2>
-              <p className="mt-1 text-xl font-bold text-green-700">
-                ৳{product.today}
-                <span className="text-sm font-normal text-gray-500">
-                  {" "}/ {product.unit}
-                </span>
-              </p>
-              <p
-                className={`text-sm ${
-                  product.change.dir === "up" ? "text-red-600" : "text-green-600"
-                }`}
-              >
-                {product.change.dir === "up" ? "▲" : "▼"} {product.change.pct}%
-              </p>
-            </div>
-          ))}
+    <div className="container mx-auto space-y-6 px-4 py-6">
+      {/* Header card */}
+      <div className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white/70 p-6">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50 text-4xl">
+          {products[0]?.categoryIcon}
         </div>
-      )}
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {products[0]?.categoryNameBn ?? categoryId}
+          </h1>
+          <p className="text-sm text-gray-500">
+            {toBn(products.length)}টি পণ্যের আজকের দাম ও পরিবর্তন
+          </p>
+        </div>
+      </div>
+
+      <ProductList products={products} />
     </div>
   );
 };

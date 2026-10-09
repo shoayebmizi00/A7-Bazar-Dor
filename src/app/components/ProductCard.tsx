@@ -1,9 +1,11 @@
+import Link from "next/link";
 import { IProduct } from "../type";
 
 const ProductCard = ({ product }: { product: IProduct }) => {
   const isUp = product.change.dir === "up";
 
   return (
+    <Link href={`/product/${product.id}`} className="block">
     <div className="rounded-2xl border border-gray-200 bg-white p-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-green-300 hover:shadow-md sm:p-4">
       {/* Product info */}
       <div className="flex items-start justify-between gap-3">
@@ -51,6 +53,7 @@ const ProductCard = ({ product }: { product: IProduct }) => {
         </div>
       </div>
     </div>
+    </Link>
   );
 };
 
