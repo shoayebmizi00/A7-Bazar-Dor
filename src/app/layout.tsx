@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import NavLinks from "./components/NavLinks";
 import Marquee from "./components/Marquee";
 import Footer from "./components/Footer";
+import { ToastContainer } from "react-toastify/unstyled";
 
 const notoSans = Noto_Sans({
   variable: "--font-noto-sans",
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${notoSans.variable} ${notoSansMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <ToastContainer />
         <Header />
         <NavLinks />
         <Marquee />

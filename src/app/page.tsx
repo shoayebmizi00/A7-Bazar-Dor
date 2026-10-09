@@ -33,7 +33,7 @@ export default async function Home() {
           <div className="mb-4 flex items-center gap-2">
             <span className="text-red-600">▲</span>
 
-            <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
+            <h2 className="text-xl font-bold text-green-800 sm:text-4xl">
               আজ দাম বেড়েছে
             </h2>
           </div>
@@ -53,7 +53,7 @@ export default async function Home() {
           <div className="mb-4 flex items-center gap-2">
             <span className="text-green-600">▼</span>
 
-            <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
+            <h2 className="text-xl font-bold text-green-800 sm:text-4xl">
               আজ দাম কমেছে
             </h2>
           </div>
@@ -72,7 +72,7 @@ export default async function Home() {
         <section className="mt-12">
           <div className="mb-5 flex items-end justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
+              <h2 className="text-xl font-bold text-green-800 sm:text-4xl">
                 সব পণ্য
               </h2>
 

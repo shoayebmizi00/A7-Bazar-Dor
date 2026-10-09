@@ -4,6 +4,7 @@ import { ICategory } from "../type";
 const NavLinks = async () => {
   const response = await fetch(
     "https://api.abcz.workers.dev/api/bazardor/categories",
+    { next: { revalidate: 3600 } },
   );
 
   const categories: ICategory[] = await response.json();

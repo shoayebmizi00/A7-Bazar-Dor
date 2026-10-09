@@ -16,7 +16,7 @@ const Marquee = async () => {
     <div className="h-9 overflow-hidden border-b border-gray-200">
       <MarqueeText
         direction="left"
-        speed={100}
+        speed={150}
         gradient={false}
         pauseOnHover
         className="h-full"
@@ -38,7 +38,10 @@ const Marquee = async () => {
 
             {/* Price */}
             <span className="font-bold text-green-700">
-              ৳{product.today}/{product.unit}
+              ৳{product.today} টাকা/
+              {product.unit === "kg" && " কেজি"}
+              {product.unit === "litre" && " লিটার"}
+              {product.unit !== "kg" && product.unit !== "litre" && ` ${product.unit}`}
             </span>
 
             {/* Change */}
