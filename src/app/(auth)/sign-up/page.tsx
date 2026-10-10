@@ -1,44 +1,200 @@
-'use client';
+"use client";
 import { signIn, signUp } from "@/lib/auth-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
 import { toast } from "react-toastify";
 
-const SignUpPage = () => {
-const router = useRouter();
+// Reusable toast body: bold title + smaller description
+const ToastMessage = ({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) => (
+  <div>
+    <p className="font-semibold">{title}</p>
+    {description && <p className="mt-0.5 text-sm opacity-80">{description}</p>}
+  </div>
+);
 
-const handleSocialSignUp = async (
-    provider: "google" | "github",
-  ) => {
-    await signIn.social({
-      provider,
-      callbackURL: "/",
-    });
+// Turn auth errors into friendly messages
+const getSignUpError = (error: {
+  code?: string;
+  message?: string;
+  status?: number;
+}) => {
+  switch (error.code) {
+    case "USER_ALREADY_EXISTS":
+      return {
+        title: "Account already exists",
+        description:
+          "This email is already registered. Try signing in instead.",
+      };
+    case "INVALID_EMAIL":
+      return {
+        title: "Invalid email address",
+        description: "Please check your email and try again.",
+      };
+    case "PASSWORD_TOO_SHORT":
+      return {
+        title: "Password is too short",
+        description: "Use at least 8 characters.",
+      };
+    case "PASSWORD_TOO_LONG":
+      return {
+        title: "Password is too long",
+        description: "Please use a shorter password.",
+      };
+  }
+
+  if (error.status === 429) {
+    return {
+      title: "Too many attempts",
+      description: "Please wait a moment before trying again.",
+    };
+  }
+
+  return {
+    title: "Sign up failed",
+    description: error.message || "Something went wrong. Please try again.",
+  };
+};
+
+const SignUpPage = () => {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  const handleSocialSignUp = async (provider: "google" | "github") => {
+    const label = provider === "google" ? "Google" : "GitHub";
+    const toastId = toast.loading(
+      <ToastMessage
+        title={`Connecting to ${label}`}
+        description="You'll be redirected shortly..."
+      />,
+    );
+
+    try {
+      const { error } = await signIn.social({
+        provider,
+        callbackURL: "/",
+      });
+
+      if (error) {
+        toast.update(toastId, {
+          render: (
+            <ToastMessage
+              title={`${label} sign up failed`}
+              description={error.message || "Please try again."}
+            />
+          ),
+          type: "error",
+          isLoading: false,
+          autoClose: 5000,
+        });
+      }
+    } catch {
+      toast.update(toastId, {
+        render: (
+          <ToastMessage
+            title="Connection problem"
+            description={`Couldn't reach ${label}. Check your internet and try again.`}
+          />
+        ),
+        type: "error",
+        isLoading: false,
+        autoClose: 5000,
+      });
+    }
   };
 
   const onSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (loading) return;
 
     const formData = new FormData(e.currentTarget);
+    const name = (formData.get("name") as string).trim();
+    const email = (formData.get("email") as string).trim();
+    const password = formData.get("password") as string;
 
-    const { data, error } = await signUp.email({
-      name: formData.get("name") as string,
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
-    });
-
-    if (error) {
-      toast.info("Signup failed:");
+    // 1. Client-side validation
+    if (name.length < 2) {
+      toast.warning(
+        <ToastMessage
+          title="Name is too short"
+          description="Please enter your full name."
+        />,
+      );
       return;
     }
 
-    toast.success("Signup successful!");
+    if (password.length < 8) {
+      toast.warning(
+        <ToastMessage
+          title="Weak password"
+          description="Your password must be at least 8 characters long."
+        />,
+      );
+      return;
+    }
 
-    router.push("/");
-    router.refresh();
+    // 2. Loading toast
+    setLoading(true);
+    const toastId = toast.loading(
+      <ToastMessage
+        title="Creating your account"
+        description="Please wait a moment..."
+      />,
+    );
+
+    try {
+      const { error } = await signUp.email({ name, email, password });
+
+      // 3. Error toast
+      if (error) {
+        const { title, description } = getSignUpError(error);
+        toast.update(toastId, {
+          render: <ToastMessage title={title} description={description} />,
+          type: "error",
+          isLoading: false,
+          autoClose: 5000,
+        });
+        return;
+      }
+
+      // 4. Success toast
+      toast.update(toastId, {
+        render: (
+          <ToastMessage
+            title={`Welcome, ${name.split(" ")[0]}! 🎉`}
+            description="Your account has been created successfully."
+          />
+        ),
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
+
+      router.push("/");
+      router.refresh();
+    } catch {
+      // 5. Network / unexpected error
+      toast.update(toastId, {
+        render: (
+          <ToastMessage
+            title="Network error"
+            description="Couldn't reach the server. Check your connection and try again."
+          />
+        ),
+        type: "error",
+        isLoading: false,
+        autoClose: 5000,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
-
 
   return (
     <main className="flex min-h-[85vh] items-center justify-center bg-base-100 px-4 py-10">
@@ -104,9 +260,17 @@ const handleSocialSignUp = async (
 
             <button
               type="submit"
-              className="btn mt-2 w-full border-green-700 bg-green-700 text-base font-semibold text-white hover:border-green-800 hover:bg-green-800"
+              disabled={loading}
+              className="btn mt-2 w-full border-green-700 bg-green-700 text-base font-semibold text-white hover:border-green-800 hover:bg-green-800 disabled:opacity-70"
             >
-              Create account
+              {loading ? (
+                <>
+                  <span className="loading loading-spinner loading-sm" />
+                  Creating account...
+                </>
+              ) : (
+                "Create account"
+              )}
             </button>
           </form>
 
@@ -122,11 +286,7 @@ const handleSocialSignUp = async (
               className="btn btn-outline border-base-300 bg-base-100 text-base-content hover:border-base-content/30 hover:bg-base-300"
               onClick={() => handleSocialSignUp("google")}
             >
-              <svg
-                viewBox="0 0 48 48"
-                aria-hidden="true"
-                className="h-5 w-5"
-              >
+              <svg viewBox="0 0 48 48" aria-hidden="true" className="h-5 w-5">
                 <path
                   fill="#EA4335"
                   d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z"

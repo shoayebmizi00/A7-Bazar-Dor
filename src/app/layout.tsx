@@ -34,14 +34,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Header />
         <NavLinks />
         <Marquee />
-        
-        <main>
-          {children}
-        </main>
-
-        <Footer/>
-        
-        </body>
+        <main>{children}</main>
+        <Footer />
+      </body>
     </html>
   );
 }

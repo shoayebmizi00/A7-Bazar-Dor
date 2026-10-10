@@ -2,39 +2,203 @@
 import { signIn } from "@/lib/auth-client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import { toast } from "react-toastify";
+
+// Reusable toast body: bold title + smaller description
+const ToastMessage = ({
+  title,
+  description,
+}: {
+  title: string;
+  description?: string;
+}) => (
+  <div>
+    <p className="font-semibold">{title}</p>
+    {description && <p className="mt-0.5 text-sm opacity-80">{description}</p>}
+  </div>
+);
+
+// Turn auth errors into friendly messages
+const getSignInError = (error: {
+  code?: string;
+  message?: string;
+  status?: number;
+}) => {
+  switch (error.code) {
+    case "INVALID_EMAIL_OR_PASSWORD":
+      return {
+        title: "Incorrect email or password",
+        description: "Please check your details and try again.",
+      };
+    case "INVALID_EMAIL":
+      return {
+        title: "Invalid email address",
+        description: "Please check your email and try again.",
+      };
+    case "USER_NOT_FOUND":
+      return {
+        title: "Account not found",
+        description: "No account uses this email. Try creating one.",
+      };
+    case "EMAIL_NOT_VERIFIED":
+      return {
+        title: "Email not verified",
+        description: "Please verify your email before signing in.",
+      };
+  }
+
+  if (error.status === 401) {
+    return {
+      title: "Incorrect email or password",
+      description: "Please check your details and try again.",
+    };
+  }
+
+  if (error.status === 429) {
+    return {
+      title: "Too many attempts",
+      description: "Please wait a moment before trying again.",
+    };
+  }
+
+  return {
+    title: "Sign in failed",
+    description: error.message || "Something went wrong. Please try again.",
+  };
+};
 
 const SignInPage = () => {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   const handleSocialSignIn = async (provider: "google" | "github") => {
-    await signIn.social({
-      provider,
-      callbackURL: "/",
-    });
+    const label = provider === "google" ? "Google" : "GitHub";
+    const toastId = toast.loading(
+      <ToastMessage
+        title={`Connecting to ${label}`}
+        description="You'll be redirected shortly..."
+      />,
+    );
+
+    try {
+      const { error } = await signIn.social({
+        provider,
+        callbackURL: "/",
+      });
+
+      if (error) {
+        toast.update(toastId, {
+          render: (
+            <ToastMessage
+              title={`${label} sign in failed`}
+              description={error.message || "Please try again."}
+            />
+          ),
+          type: "error",
+          isLoading: false,
+          autoClose: 5000,
+        });
+      }
+    } catch {
+      toast.update(toastId, {
+        render: (
+          <ToastMessage
+            title="Connection problem"
+            description={`Couldn't reach ${label}. Check your internet and try again.`}
+          />
+        ),
+        type: "error",
+        isLoading: false,
+        autoClose: 5000,
+      });
+    }
   };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (loading) return;
 
     const formData = new FormData(e.currentTarget);
+    const email = (formData.get("email") as string).trim();
+    const password = formData.get("password") as string;
+    const rememberMe = formData.get("rememberMe") === "on";
 
-    const { error } = await signIn.email({
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
-      rememberMe: formData.get("rememberMe") === "on",
-    });
-
-    if (error) {
-      toast.error(error.message || "Sign in failed!");
+    // 1. Client-side validation
+    if (!email || !password) {
+      toast.warning(
+        <ToastMessage
+          title="Missing details"
+          description="Please enter both your email and password."
+        />,
+      );
       return;
     }
 
-    toast.success("সফলভাবে সাইন ইন হয়েছে!");
+    // 2. Loading toast
+    setLoading(true);
+    const toastId = toast.loading(
+      <ToastMessage
+        title="Signing you in"
+        description="Please wait a moment..."
+      />,
+    );
 
-    router.replace("/");
-    router.refresh();
+    try {
+      const { data, error } = await signIn.email({
+        email,
+        password,
+        rememberMe,
+      });
+
+      // 3. Error toast
+      if (error) {
+        const { title, description } = getSignInError(error);
+        toast.update(toastId, {
+          render: <ToastMessage title={title} description={description} />,
+          type: "error",
+          isLoading: false,
+          autoClose: 5000,
+        });
+        return;
+      }
+
+      // 4. Success toast
+      const firstName = data?.user?.name?.split(" ")[0];
+      toast.update(toastId, {
+        render: (
+          <ToastMessage
+            title={
+              firstName ? `Welcome back, ${firstName}! 👋` : "Welcome back! 👋"
+            }
+            description="সফলভাবে সাইন ইন হয়েছে!"
+          />
+        ),
+        type: "success",
+        isLoading: false,
+        autoClose: 3000,
+      });
+
+      router.replace("/");
+      router.refresh();
+    } catch {
+      // 5. Network / unexpected error
+      toast.update(toastId, {
+        render: (
+          <ToastMessage
+            title="Network error"
+            description="Couldn't reach the server. Check your connection and try again."
+          />
+        ),
+        type: "error",
+        isLoading: false,
+        autoClose: 5000,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
     <main className="flex min-h-[85vh] items-center justify-center bg-base-100 px-4 py-10">
       <div className="w-full max-w-md">
@@ -106,9 +270,17 @@ const SignInPage = () => {
             {/* Submit */}
             <button
               type="submit"
-              className="btn mt-2 w-full border-green-700 bg-green-700 text-base font-semibold text-white hover:border-green-800 hover:bg-green-800"
+              disabled={loading}
+              className="btn mt-2 w-full border-green-700 bg-green-700 text-base font-semibold text-white hover:border-green-800 hover:bg-green-800 disabled:opacity-70"
             >
-              Sign In
+              {loading ? (
+                <>
+                  <span className="loading loading-spinner loading-sm" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </button>
           </form>
 
