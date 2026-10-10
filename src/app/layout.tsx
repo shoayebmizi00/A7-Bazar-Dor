@@ -5,7 +5,7 @@ import Header from "./components/Header";
 import NavLinks from "./components/NavLinks";
 import Marquee from "./components/Marquee";
 import Footer from "./components/Footer";
-import { ToastContainer } from "react-toastify/unstyled";
+import { ToastContainer } from "react-toastify";
 
 const notoSans = Noto_Sans({
   variable: "--font-noto-sans",
