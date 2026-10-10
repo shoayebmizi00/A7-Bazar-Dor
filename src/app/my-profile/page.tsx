@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut, updateUser, useSession } from "@/lib/auth-client"; // adjust to your path
+import { toast } from "react-toastify";
 
 const MyProfilePage = () => {
   const router = useRouter();
@@ -16,7 +17,6 @@ const MyProfilePage = () => {
     text: string;
   } | null>(null);
 
-  // ---------- loading ----------
   if (isPending) {
     return (
       <div className="container mx-auto max-w-2xl space-y-6 px-4 py-8">
@@ -47,9 +47,13 @@ const MyProfilePage = () => {
         type: "error",
         text: error.message || "নাম হালনাগাদ করা যায়নি। আবার চেষ্টা করুন।",
       });
+      toast.error(
+        error.message || "নাম হালনাগাদ করা যায়নি। আবার চেষ্টা করুন।"
+      );
     } else {
       setNewName("");
       setMessage({ type: "success", text: "নাম সফলভাবে হালনাগাদ হয়েছে।" });
+      toast.success("নাম সফলভাবে হালনাগাদ হয়েছে।");
     }
 
     setSaving(false);
@@ -66,6 +70,7 @@ const MyProfilePage = () => {
         onError: () => setSigningOut(false),
       },
     });
+    toast.success("সাইন আউট সফল হয়েছে।");
   };
 
   return (
