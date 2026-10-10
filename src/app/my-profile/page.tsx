@@ -50,7 +50,6 @@ const MyProfilePage = () => {
     } else {
       setNewName("");
       setMessage({ type: "success", text: "নাম সফলভাবে হালনাগাদ হয়েছে।" });
-      // useSession refreshes automatically, so the new name shows everywhere
     }
 
     setSaving(false);

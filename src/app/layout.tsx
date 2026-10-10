@@ -29,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       data-theme="light"
       className={`${notoSans.variable} ${notoSansMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body suppressHydrationWarning className="min-h-full flex flex-col">
         <ToastContainer />
         <Header />
         <NavLinks />
